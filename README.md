@@ -1,6 +1,6 @@
 # MSL kernel
 
-The Linux kernel [MSL](https://github.com/onexay/msl) runs in its VM: unmodified kernel.org Linux (arm64), configured with Apple's 6.18 config (`base.config`, extracted from the kernel Apple's `container` ships) plus `msl.fragment`. The fragment adds XHCI/usb-storage, quota and nfsd, and switches to 16 KiB pages to match the host ([onexay/msl#48](https://github.com/onexay/msl/issues/48)).
+The Linux kernel [MSL](https://github.com/onexay/msl) runs in its VM: unmodified kernel.org Linux (arm64), configured with Apple's 6.18 config (`base.config`, extracted from the kernel Apple's `container` ships) plus `msl.fragment`. The fragment adds XHCI/usb-storage, quota, nfsd, device-mapper, NBD and KVM (for msl's `nestedVirtualization`), and switches to 16 KiB pages to match the host ([onexay/msl#48](https://github.com/onexay/msl/issues/48)).
 
 msl bundles a published release of this kernel. The release it uses is pinned in msl's `kernel/release.tag` and `kernel/release.sha256`.
 

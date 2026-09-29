@@ -30,3 +30,6 @@ CONFIG_BLK_DEV_NBD=y
 # CONFIG_ARM64_4K_PAGES is not set
 CONFIG_ARM64_16K_PAGES=y
 CONFIG_ARM64_VA_BITS_47=y
+# KVM, for nested virtualization ([msl2] nestedVirtualization; M3 or later, macOS 15)
+CONFIG_VIRTUALIZATION=y
+CONFIG_KVM=y

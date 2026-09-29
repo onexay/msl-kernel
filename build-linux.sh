@@ -14,9 +14,15 @@ cd "linux-$VER"
 cp "$K/base.config" .config
 scripts/kconfig/merge_config.sh -m .config "$K/msl.fragment"
 make olddefconfig
-for o in USB_XHCI_PCI USB_STORAGE QUOTA NFSD BLK_DEV_DM BLK_DEV_NBD ARM64_16K_PAGES; do grep -q "^CONFIG_$o=y" .config || { echo "missing $o"; exit 1; }; done
-make -j"$(nproc)" Image
+for o in USB_XHCI_PCI USB_STORAGE QUOTA NFSD BLK_DEV_DM BLK_DEV_NBD ARM64_16K_PAGES VIRTUALIZATION KVM; do grep -q "^CONFIG_$o=y" .config || { echo "missing $o"; exit 1; }; done
+# uname -r is the release tag without "kernel-", e.g. 6.18.15-msl-a1a22bd (LOCALVERSION
+# at build time: the config can't hold its own hash).
+TAG=$(KVER=$VER "$K/tag.sh")
+LV=${TAG#kernel-$VER}
+make -j"$(nproc)" LOCALVERSION="$LV" Image
+REL=$(make -s LOCALVERSION="$LV" kernelrelease)
+[ "$REL" = "${TAG#kernel-}" ] || { echo "kernelrelease $REL doesn't match $TAG"; exit 1; }
 cp arch/arm64/boot/Image "$OUT/Image"
 cp .config "$OUT/config"
-KVER=$VER "$K/tag.sh" > "$OUT/tag"
+echo "$TAG" > "$OUT/tag"
 rm -rf "$W"

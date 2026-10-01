@@ -4,7 +4,7 @@ name: Kernel
 on:
   push:
     branches: [main]
-    paths: ["base.config", "msl.fragment", "build-linux.sh", "build.sh", "tag.sh", ".github/workflows/kernel.yml"]
+    paths: ["base.config", "msl.fragment", "build-linux.sh", "build.sh", "tag.sh", "drivers/**", ".github/workflows/kernel.yml"]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -32,6 +32,8 @@ jobs:
           path: |
             out/Image
             out/config
+            out/msl_gpu_accel.h
+            out/msl-drivers.tar.gz
             out/tag
             out/build-info.txt
           if-no-files-found: error

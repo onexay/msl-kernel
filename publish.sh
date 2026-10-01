@@ -18,7 +18,7 @@ echo "kernel from CI run $RUN ($(cat "$HERE/out/build-info.txt"))"
 LINUX=$(sed -n 's/^# Linux\/arm64 \([^ ]*\) Kernel Configuration/\1/p' "$HERE/out/config")
 case $TAG in "kernel-$LINUX-msl-"*) ;; *) echo "$TAG doesn't match the built kernel ($LINUX)" >&2; exit 1 ;; esac
 [ "$(cat "$HERE/out/tag" 2>/dev/null)" = "$TAG" ] || { echo "the CI artifact's tag isn't $TAG" >&2; exit 1; }
-(cd "$HERE/out" && shasum -a 256 Image config) > "$HERE/out/release.sha256"
+(cd "$HERE/out" && shasum -a 256 Image config msl_gpu_accel.h) > "$HERE/out/release.sha256"
 
 # GPL-2.0: ship the corresponding source, verified against kernel.org's checksums.
 SRC=$HERE/dist/linux-$LINUX.tar.xz
@@ -29,7 +29,7 @@ curl -fsSL -o "$HERE/dist/sha256sums.asc" "$URL/sha256sums.asc"
 want=$(awk -v f="linux-$LINUX.tar.xz" '$2==f{print $1}' "$HERE/dist/sha256sums.asc")
 [ "$(shasum -a 256 "$SRC" | cut -d' ' -f1)" = "$want" ] || { echo "linux-$LINUX.tar.xz: checksum mismatch" >&2; exit 1; }
 
-gh release create "$TAG" "$HERE/out/Image" "$HERE/out/config" "$HERE/out/release.sha256" "$SRC" --repo "$REPO" \
+gh release create "$TAG" "$HERE/out/Image" "$HERE/out/config" "$HERE/out/msl_gpu_accel.h" "$HERE/out/release.sha256" "$SRC" "$HERE/out/msl-drivers.tar.gz" --repo "$REPO" \
   --title "MSL kernel $LINUX (${TAG##*-msl-})" \
-  --notes "Linux $LINUX (arm64), built by CI run $RUN (build-linux.sh on ubuntu-24.04-arm) from base.config + msl.fragment, $(cat "$HERE/out/build-info.txt"). msl bundles the release it pins (scripts/pin.sh). GPL-2.0. Corresponding source: linux-$LINUX.tar.xz (attached, unmodified from kernel.org) plus the attached config; build-linux.sh reproduces the build."
+  --notes "Linux $LINUX (arm64), built by CI run $RUN (build-linux.sh on ubuntu-24.04-arm) from base.config + msl.fragment + drivers/, $(cat "$HERE/out/build-info.txt"). msl bundles the release it pins (scripts/pin.sh). GPL-2.0. Corresponding source: linux-$LINUX.tar.xz (attached, unmodified from kernel.org), the attached config, and drivers/ (msl-drivers.tar.gz, attached); build-linux.sh reproduces the build. msl_gpu_accel.h is the msl-accel driver's userspace interface."
 echo "published $TAG; pin it in msl: scripts/pin.sh kernel $TAG"

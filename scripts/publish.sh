@@ -7,7 +7,7 @@
 set -eu
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 VER=${KVER:-$(sed -n 's/^VER=${KVER:-\(.*\)}$/\1/p' "$HERE/scripts/build.sh")}
-COMMIT=$(git -C "$HERE" rev-parse --short=7 HEAD)
+COMMIT=$(git -C "$HERE" rev-parse HEAD | cut -c1-7)
 TAG="kernel-$VER-msl-$COMMIT"
 REPO=${MSL_KERNEL_REPO:-onexay/msl-kernel}
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then

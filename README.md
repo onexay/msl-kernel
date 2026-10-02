@@ -43,13 +43,12 @@ The default version is 6.18.15. Both build methods write these files to `out/`:
 
 - `Image`: arm64 kernel image.
 - `config`: final kernel configuration.
-- `tag`: release tag for these inputs.
 
 To try the kernel in an MSL checkout, set `MSL_KERNEL_OUT` to this repository's `out` directory and run `scripts/build.sh` there.
 
 ## Release a kernel
 
-The tag is derived from the Linux version and both files in `configs/`. `scripts/tag.sh` prints it; changing an input creates a new tag without a manual version bump.
+The release tag is `kernel-<linux-version>-msl-<short-commit-hash>` for the current Git commit.
 
 1. Push the kernel input changes. The **Kernel** GitHub Actions workflow builds the image on an arm64 runner and uploads an artifact named with the tag.
 2. Run `./scripts/publish.sh` after the workflow completes. The script downloads the artifact, verifies the kernel.org source checksum, and creates a GitHub release with the image, configuration, and corresponding source.

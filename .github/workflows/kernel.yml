@@ -1,10 +1,10 @@
 # Build the MSL kernel whenever its inputs change. scripts/publish.sh publishes
-# the artifact (named after scripts/tag.sh's tag); CI never publishes.
+# the artifact; CI never publishes.
 name: Kernel
 on:
   push:
     branches: [main]
-    paths: ["configs/**", "scripts/build-linux.sh", "scripts/build.sh", "scripts/tag.sh", ".github/workflows/kernel.yml"]
+    paths: ["configs/**", "scripts/build-linux.sh", "scripts/build.sh", ".github/workflows/kernel.yml"]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -25,14 +25,13 @@ jobs:
           VER=$(sed -n 's/^VER=${KVER:-\(.*\)}$/\1/p' scripts/build.sh)
           ./scripts/build-linux.sh . out "$VER"
           echo "commit ${{ github.sha }}" > out/build-info.txt
-          echo "TAG=$(cat out/tag)" >> "$GITHUB_ENV"
+          echo "TAG=kernel-$VER-msl-$(git rev-parse --short=7 HEAD)" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ env.TAG }}
           path: |
             out/Image
             out/config
-            out/tag
             out/build-info.txt
           if-no-files-found: error
 

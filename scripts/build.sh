@@ -3,7 +3,7 @@
 # Build the MSL kernel inside a Linux container (Apple `container`), for local
 # testing. Releases are built by CI (.github/workflows/kernel.yml) and published
 # with scripts/publish.sh. Both run scripts/build-linux.sh.
-# Output: out/{Image,config,tag} (tag: scripts/tag.sh for these inputs)
+# Output: out/{Image,config}
 set -eu
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 VER=${KVER:-6.18.15}

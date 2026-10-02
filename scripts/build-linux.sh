@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Build the MSL kernel on Debian/Ubuntu arm64 (inside Apple `container` via
 # scripts/build.sh, or natively on CI's ubuntu-24.04-arm runner).
-# Needs: build-essential flex bison bc libelf-dev libssl-dev curl xz-utils cpio kmod python3.
+# Needs: git build-essential flex bison bc libelf-dev libssl-dev curl xz-utils cpio kmod python3.
 #   scripts/build-linux.sh <kernel dir> <out dir> [linux version]
 # Output: <out>/{Image,config}
 set -euxo pipefail

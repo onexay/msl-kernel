@@ -1,9 +1,9 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 # Build the MSL kernel inside a Linux container (Apple `container`), for local
-# testing. Releases are built by CI (.github/workflows/kernel.yml) and published
-# with scripts/publish.sh. Both run scripts/build-linux.sh.
-# Output: out/{Image,config}
+# testing. CI release builds run scripts/build-linux.sh through
+# .github/workflows/kernel.yml.
+# Output: out/{Image,config,kernel.version,build-info.txt}
 set -eu
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 VER=${KVER:-6.18.15}

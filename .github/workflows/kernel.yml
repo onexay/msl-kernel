@@ -1,5 +1,4 @@
-# Build the MSL kernel whenever its inputs change. scripts/publish.sh publishes
-# the artifact; CI never publishes.
+# Build on changes; a manual run creates a SemVer GitHub release.
 name: Kernel
 on:
   push:
@@ -7,15 +6,18 @@ on:
     paths: ["configs/**", "scripts/build-linux.sh", "scripts/build.sh", ".github/workflows/kernel.yml"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without the v prefix (for example 1.2.3)"
+        required: true
+        type: string
 permissions:
   contents: read
 
 jobs:
   kernel:
-    name: Kernel
+    name: Build kernel
     runs-on: ubuntu-24.04-arm
-    # The same image as scripts/build.sh: the kernel config depends on the toolchain
-    # (GCC version, whether rustc exists), not only on our inputs.
     container: docker.io/library/debian:trixie
     steps:
       - uses: actions/checkout@v7
@@ -23,18 +25,71 @@ jobs:
       - name: Build
         run: |
           VER=$(sed -n 's/^VER=${KVER:-\(.*\)}$/\1/p' scripts/build.sh)
-          COMMIT=${{ github.sha }}
-          ./scripts/build-linux.sh . out "$VER" "$COMMIT"
-          echo "commit $COMMIT" > out/build-info.txt
-          echo "TAG=kernel-$VER-msl-${COMMIT:0:7}" >> "$GITHUB_ENV"
+          ./scripts/build-linux.sh . out "$VER" "$GITHUB_SHA"
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.TAG }}
+          name: kernel-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             out/Image
             out/config
+            out/kernel.version
             out/build-info.txt
           if-no-files-found: error
+
+  release:
+    name: Publish kernel release
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: kernel
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v7
+        with:
+          name: kernel-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out
+      - name: Validate version and build
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "version must be SemVer in MAJOR.MINOR.PATCH form" >&2
+            exit 1
+          fi
+          TAG="v$VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "$TAG already exists" >&2
+            exit 1
+          fi
+          [ "$(cat out/build-info.txt)" = "commit $GITHUB_SHA" ]
+          LINUX=$(sed -n 's/^# Linux\/arm64 \([^ ]*\) Kernel Configuration/\1/p' out/config)
+          [ -n "$LINUX" ]
+          (cd out && shasum -a 256 Image config kernel.version) > out/release.sha256
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "LINUX=$LINUX" >> "$GITHUB_ENV"
+      - name: Download and verify Linux source
+        run: |
+          URL="https://cdn.kernel.org/pub/linux/kernel/v${LINUX%%.*}.x"
+          mkdir -p dist
+          curl -fsSL -o "dist/linux-$LINUX.tar.xz" "$URL/linux-$LINUX.tar.xz"
+          curl -fsSL -o dist/sha256sums.asc "$URL/sha256sums.asc"
+          WANT=$(awk -v f="linux-$LINUX.tar.xz" '$2==f {print $1}' dist/sha256sums.asc)
+          [ -n "$WANT" ]
+          [ "$(shasum -a 256 "dist/linux-$LINUX.tar.xz" | cut -d' ' -f1)" = "$WANT" ]
+      - name: Create SemVer tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            out/Image out/config out/kernel.version out/build-info.txt out/release.sha256 "dist/linux-$LINUX.tar.xz" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "MSL kernel $LINUX ($TAG)" \
+            --notes "Linux $LINUX for arm64, built by this workflow from commit $GITHUB_SHA. The release includes Image, config, kernel.version, build provenance, checksums, and the matching unmodified Linux source archive (GPL-2.0). Pin it in msl with: scripts/pin.sh kernel $TAG."
 
   lint:
     name: Lint

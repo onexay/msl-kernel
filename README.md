@@ -4,14 +4,7 @@
 
 This repository builds an arm64 Linux kernel for MSL and publishes versioned kernel releases.
 
-MSL uses an unmodified Linux source release with Apple's 6.18 kernel configuration in `configs/base.config` and MSL-specific options in `configs/msl.config`. The MSL config enables,
-  * USB storage
-  * quotas
-  * NFS
-  * device mapper
-  * NBD
-  * KVM
-  * 16 KiB pages
+MSL uses an unmodified Linux source release with Apple's 6.18 kernel configuration in `configs/base.config` and MSL-specific options in `configs/msl.config`. The MSL config enables USB storage, quotas, NFS, device mapper, NBD, KVM and 16 KiB pages.
 
 ## Why the kernel uses 16 KiB pages
 
@@ -27,34 +20,25 @@ On macOS, install Apple's `container` CLI, then run:
 
 The script builds Linux 6.18.15 in a Debian trixie arm64 container. Set `KVER` to build another Linux 6.18.x release. The build downloads the matching kernel.org source archive.
 
-To build on Debian or Ubuntu arm64 without the container wrapper, install required packages,
+To build on Debian or Ubuntu arm64 without the container wrapper, install the required packages:
 
 ```sh
 sudo apt install -y build-essential flex bison bc libelf-dev libssl-dev curl xz-utils cpio kmod python3
 ```
 
-then run:
+Then run:
 
 ```sh
 ./scripts/build-linux.sh . out [linux-version]
 ```
 
-The default version is 6.18.15. Both build methods write these files to `out/`:
-
-- `Image`: arm64 kernel image.
-- `config`: final kernel configuration.
-
-To try the kernel in an MSL checkout, set `MSL_KERNEL_OUT` to this repository's `out` directory and run `scripts/build.sh` there.
+Both build methods write `Image`, `config`, `kernel.version` (the `uname -r` value) and `build-info.txt` (the full source commit) to `out/`. To try a local kernel in an MSL checkout, set `MSL_KERNEL_OUT` to this repository's `out` directory and run `scripts/build.sh` there.
 
 ## Release a kernel
 
-The release tag is `kernel-<linux-version>-msl-<short-commit-hash>` for the current Git commit.
+Push the kernel changes to `main`. In **Actions → Kernel**, choose **Run workflow** and enter a SemVer version without the `v` prefix, such as `1.2.3`. The workflow builds the kernel, verifies the matching Linux source checksum, creates the `v1.2.3` tag and publishes a GitHub release with the image, configuration, kernel release string, source commit, checksums and source archive. The short source hash remains in `uname -r` so kernel builds are distinguishable.
 
-1. Push the kernel input changes. The **Kernel** GitHub Actions workflow builds the image on an arm64 runner and uploads an artifact named with the tag.
-2. Run `./scripts/publish.sh` after the workflow completes. The script downloads the artifact, verifies the kernel.org source checksum, and creates a GitHub release with the image, configuration, and corresponding source.
-3. In the MSL checkout, pin the release with `scripts/pin.sh kernel <tag>` and commit the resulting changes.
-
-`scripts/publish.sh` requires GitHub CLI (`gh`) authenticated with permission to create releases in `onexay/msl-kernel`. Set `MSL_KERNEL_REPO` to publish to another repository.
+In the MSL checkout, run `scripts/pin.sh kernel v1.2.3` and commit the updated pin files.
 
 ## Contributing
 

@@ -3,14 +3,9 @@ name: Kernel
 on:
   push:
     branches: [main]
-    paths: ["configs/**", "scripts/build-linux.sh", "scripts/build.sh", ".github/workflows/kernel.yml"]
+    paths: ["configs/**", "scripts/build-linux.sh", "scripts/build.sh", "scripts/next-version.sh", ".github/workflows/kernel.yml"]
   pull_request:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Release version without the v prefix (for example 1.2.3)"
-        required: true
-        type: string
 permissions:
   contents: read
 
@@ -19,9 +14,20 @@ jobs:
     name: Build kernel
     runs-on: ubuntu-24.04-arm
     container: docker.io/library/debian:trixie
+    outputs:
+      version: ${{ steps.release-version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
-      - run: apt-get update -qq && apt-get install -y -qq build-essential flex bison bc libelf-dev libssl-dev curl xz-utils cpio kmod python3
+        with:
+          fetch-depth: 0
+      - run: apt-get update -qq && apt-get install -y -qq git build-essential flex bison bc libelf-dev libssl-dev curl xz-utils cpio kmod python3
+      - name: Determine release version
+        id: release-version
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        run: |
+          BASE_VERSION=$(sed -n 's/^VER=${KVER:-\(.*\)}$/\1/p' scripts/build.sh)
+          VERSION=$(./scripts/next-version.sh "$BASE_VERSION")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Build
         run: |
           VER=$(sed -n 's/^VER=${KVER:-\(.*\)}$/\1/p' scripts/build.sh)
@@ -53,13 +59,14 @@ jobs:
           path: out
       - name: Validate version and build
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.kernel.outputs.version }}
         run: |
           if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "version must be SemVer in MAJOR.MINOR.PATCH form" >&2
             exit 1
           fi
-          TAG="v$VERSION"
+          SHORT_SHA=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
+          TAG="v$VERSION+$SHORT_SHA"
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "$TAG already exists" >&2
             exit 1

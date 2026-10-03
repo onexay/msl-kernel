@@ -36,9 +36,9 @@ Both build methods write `Image`, `config`, `kernel.version` (the `uname -r` val
 
 ## Release a kernel
 
-Push the kernel changes to `main`. In **Actions → Kernel**, choose **Run workflow** and enter a SemVer version without the `v` prefix, such as `1.2.3`. The workflow builds the kernel, verifies the matching Linux source checksum, creates the `v1.2.3` tag and publishes a GitHub release with the image, configuration, kernel release string, source commit, checksums and source archive. The short source hash remains in `uname -r` so kernel builds are distinguishable.
+Push the kernel changes to main, then choose **Actions → Kernel → Run workflow**. The first SemVer release uses the Linux version in `scripts/build.sh`; later releases bump from the latest SemVer tag based on commits since that release. Use Conventional Commit subjects: `feat:` bumps minor, `BREAKING CHANGE:` or a type with `!` (such as `feat!:`) bumps major, and other commits bump patch. If the configured Linux version is higher than the calculated version, the workflow uses it. The release tag adds the seven-character source commit hash as SemVer build metadata, such as `v6.18.15+abc1234`. The workflow verifies the matching Linux source checksum and publishes the image, configuration, kernel release string, source commit, checksums and source archive.
 
-In the MSL checkout, run `scripts/pin.sh kernel v1.2.3` and commit the updated pin files.
+In the MSL checkout, run `scripts/pin.sh kernel <release-tag>` and commit the updated pin files.
 
 ## Contributing
 

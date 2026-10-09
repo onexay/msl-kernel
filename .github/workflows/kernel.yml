@@ -96,7 +96,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "$TAG" \
-            --notes "Linux $LINUX for arm64, built by this workflow from commit $GITHUB_SHA. The release includes Image, config, kernel.version, build provenance, checksums, and the matching unmodified Linux source archive (GPL-2.0). Pin it in msl with: scripts/pin.sh kernel $TAG."
+            --generate-notes
 
   lint:
     name: Lint
